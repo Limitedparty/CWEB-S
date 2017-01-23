@@ -1,0 +1,95 @@
+PRINT "Markus Chater"
+LOCATE , , 1 ' display the print cursor for INKEY$
+client = _OPENCLIENT("TCP/IP:7319:192.168.88.244") ' Attempt to connect to local host as a client
+IF client THEN
+    PRINT "[connected to " + _CONNECTIONADDRESS(client) + "]"
+    _TITLE "Client - Markus Chater"
+    INPUT "Enter your name: ", myname$
+    PRINT #client, myname$ + " connected!"
+    DO
+        GetMessage client
+        SendMessage myname$, mymessage$, client ' display current input on screen
+        _DELAY 0.01 ' reduce CPU usage
+    LOOP
+ELSE ' "if client" alternative to open a new Host
+    PRINT "[No existing host found]"
+    host = _OPENHOST("TCP/IP:7319") ' no host found, so begin new host
+    IF host THEN
+        _TITLE "Host - Markus Chater"
+        PRINT "[Beginning new host chat session!]"
+        DIM Users(1 TO 1000) ' array to hold other client info
+        numclients = 0
+        client = _OPENCLIENT("TCP/IP:7319:localhost")
+        IF client = 0 THEN PRINT "ERROR: could not attach host's personal client to host!"
+        INPUT "Enter your name:", myname$
+        PRINT #client, myname$ + " connected!"
+        PRINT "[Chat session active!]"
+        DO ' host main loop
+            newclient = _OPENCONNECTION(host) ' receive any new connection
+            IF newclient THEN
+                numclients = numclients + 1
+                Users(numclients) = newclient
+                PRINT #Users(numclients), "Welcome!"
+            END IF
+            FOR i = 1 TO numclients ' distribute incoming messages to all clients
+                IF Users(i) THEN
+                    INPUT #Users(i), message$
+                    IF message$ <> "" THEN
+                        FOR p = 1 TO numclients
+                            IF Users(p) THEN PRINT #Users(p), message$
+                        NEXT p
+                    END IF
+                END IF
+            NEXT i
+            GetMessage client ' allow host to get messages and chat also
+            SendMessage myname$, mymessage$, client
+            _DELAY 0.01 ' reduce CPU usage
+        LOOP
+    END IF ' host
+    PRINT "ERROR: Could not begin new host!"
+END IF ' if client from start
+SLEEP
+SYSTEM
+
+'.................... END OF MAIN PROGRAM ................
+
+
+SUB GetMessage (client) ' get & display any new message
+INPUT #client, newmessage$
+IF newmessage$ <> "" THEN
+    VIEW PRINT 1 TO 23
+    LOCATE 23, 1
+    PRINT newmessage$
+    VIEW PRINT 1 TO 24
+END IF
+END SUB
+
+SUB SendMessage (myname$, mymessage$, client) ' simple input handler
+k$ = INKEY$
+IF LEN(k$) THEN
+    IF k$ = CHR$(8) AND LEN(mymessage$) <> 0 THEN
+        mymessage$ = LEFT$(mymessage$, LEN(mymessage$) - 1)
+    ELSE
+        IF LEN(k$) = 1 AND ASC(k$) >= 32 THEN mymessage$ = mymessage$ + k$
+    END IF
+END IF
+LOCATE 24, 1: PRINT SPACE$(80); ' erase previous message displayed
+LOCATE 24, 1: PRINT myname$ + ": "; mymessage$;
+
+IF k$ = CHR$(13) THEN ' [Enter] sends the message
+
+    IF mymessage$ = "!cls" THEN
+        CLS
+    END IF
+    IF mymessage$ = "!cls" THEN
+        PRINT "HELP:"
+        PRINT "!cls - clear chat"
+        PRINT "!cookies - give cookies!"
+    END IF
+
+
+    PRINT #client, myname$ + ": " + mymessage$
+    mymessage$ = ""
+END IF
+IF k$ = CHR$(27) THEN SYSTEM ' [Esc] key ends program
+END SUB
