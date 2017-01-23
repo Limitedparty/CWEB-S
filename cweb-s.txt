@@ -1,6 +1,6 @@
 ' Clandestine WEB Server
 ' CWEB-S by Markus
-' https://github.com/levohup/CWEB-S/
+' https://github.com/Limitedparty/CWEB-S
 
 port$ = "83" ' Server port (default - 80)
 
